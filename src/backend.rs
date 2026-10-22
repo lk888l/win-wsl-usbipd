@@ -248,6 +248,12 @@ fn parse_devices(input: &str) -> Result<Vec<Device>> {
         let Some(bus_id) = raw.bus_id else {
             continue;
         };
+        // usbipd uses this documented BusId sentinel for devices whose hub
+        // cannot expose a compatible port. They cannot be bound or attached,
+        // but must not prevent other devices in the same state from being used.
+        if bus_id == "IncompatibleHub" {
+            continue;
+        }
         if raw.instance_id.trim().is_empty() {
             bail!("usbipd state 返回空设备标识；为避免操作错误设备，已停止查询");
         }
@@ -449,6 +455,26 @@ mod tests {
         assert_eq!(devices[0].bus_id.to_string(), "2-2");
         assert_eq!(devices[0].status_label(), "已连接");
         assert_eq!(devices[1].status_label(), "已共享");
+    }
+
+    #[test]
+    fn incompatible_hubs_do_not_hide_usable_devices() {
+        let mut value = serde_json::json!({"Devices": [
+            {"BusId": "IncompatibleHub", "Description": "不兼容设备", "InstanceId": "unsupported", "PersistedGuid": null, "ClientIPAddress": null},
+            {"BusId": "2-3", "Description": "正常设备", "InstanceId": "usable", "PersistedGuid": "guid", "ClientIPAddress": "172.20.0.2"},
+            {"BusId": "IncompatibleHub", "Description": "另一不兼容设备", "InstanceId": "unsupported-bound", "PersistedGuid": "other-guid", "ClientIPAddress": null}
+        ]});
+        let devices = parse_devices(&value.to_string()).unwrap();
+        assert_eq!(devices.len(), 1);
+        assert_eq!(devices[0].bus_id.to_string(), "2-3");
+        assert_eq!(devices[0].instance_id, "usable");
+        assert_eq!(devices[0].status_label(), "已连接");
+
+        value["Devices"].as_array_mut().unwrap().remove(1);
+        assert!(parse_devices(&value.to_string()).unwrap().is_empty());
+        // Only the official sentinel is skipped; malformed IDs still fail.
+        value["Devices"][0]["BusId"] = "UnknownHub".into();
+        assert!(parse_devices(&value.to_string()).is_err());
     }
 
     #[test]

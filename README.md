@@ -34,16 +34,16 @@ wsl --distribution Ubuntu-24.04
 
 ### 下载 Windows x64 版本
 
-从 [v1.0.0 Release](https://github.com/lk888l/win-wsl-usbipd/releases/tag/v1.0.0) 下载 `wsl-usb-v1.0.0-windows-x86_64.zip` 和 `SHA256SUMS.txt`。预编译版本适用于 Windows x64，无需安装 Rust；仍需先安装和配置上述 usbipd-win、WSL2，并保持一个 WSL2 终端运行。
+从 [v1.0.1 Release](https://github.com/lk888l/win-wsl-usbipd/releases/tag/v1.0.1) 下载 `wsl-usb-v1.0.1-windows-x86_64.zip` 和 `SHA256SUMS.txt`。预编译版本适用于 Windows x64，无需安装 Rust；仍需先安装和配置上述 usbipd-win、WSL2，并保持一个 WSL2 终端运行。
 
 在下载目录中打开 PowerShell，核对 ZIP 的 SHA-256 与 `SHA256SUMS.txt` 中对应文件的值一致，再解压运行：
 
 ```powershell
-Get-FileHash .\wsl-usb-v1.0.0-windows-x86_64.zip -Algorithm SHA256
+Get-FileHash .\wsl-usb-v1.0.1-windows-x86_64.zip -Algorithm SHA256
 Get-Content .\SHA256SUMS.txt
-Expand-Archive .\wsl-usb-v1.0.0-windows-x86_64.zip -DestinationPath .\wsl-usb-v1.0.0
-.\wsl-usb-v1.0.0\wsl-usb.exe --version
-.\wsl-usb-v1.0.0\wsl-usb.exe
+Expand-Archive .\wsl-usb-v1.0.1-windows-x86_64.zip -DestinationPath .\wsl-usb-v1.0.1
+.\wsl-usb-v1.0.1\wsl-usb.exe --version
+.\wsl-usb-v1.0.1\wsl-usb.exe
 ```
 
 ### 从源码构建
@@ -131,7 +131,7 @@ wsl-usb --timeout 60 --refresh-seconds 5
 
 | JSON 字段 | 含义 |
 | --- | --- |
-| `BusId` 非空 | 当前已连接，可列出和操作 |
+| `BusId` 为数字形式的总线-端口 | 当前已连接，可列出和操作；跳过不可映射的 `IncompatibleHub` 设备 |
 | `PersistedGuid` 非空 | 已共享，通常无需再次提权绑定 |
 | `ClientIPAddress` 非空 | 已连接到某个客户端 |
 
