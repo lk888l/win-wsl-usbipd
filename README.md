@@ -32,10 +32,26 @@ wsl --distribution Ubuntu-24.04
 
 ## 快速开始
 
-在项目目录执行：
+### 下载 Windows x64 版本
+
+从 [v1.0.0 Release](https://github.com/lk888l/win-wsl-usbipd/releases/tag/v1.0.0) 下载 `wsl-usb-v1.0.0-windows-x86_64.zip` 和 `SHA256SUMS.txt`。预编译版本适用于 Windows x64，无需安装 Rust；仍需先安装和配置上述 usbipd-win、WSL2，并保持一个 WSL2 终端运行。
+
+在下载目录中打开 PowerShell，核对 ZIP 的 SHA-256 与 `SHA256SUMS.txt` 中对应文件的值一致，再解压运行：
 
 ```powershell
-cargo run --release
+Get-FileHash .\wsl-usb-v1.0.0-windows-x86_64.zip -Algorithm SHA256
+Get-Content .\SHA256SUMS.txt
+Expand-Archive .\wsl-usb-v1.0.0-windows-x86_64.zip -DestinationPath .\wsl-usb-v1.0.0
+.\wsl-usb-v1.0.0\wsl-usb.exe --version
+.\wsl-usb-v1.0.0\wsl-usb.exe
+```
+
+### 从源码构建
+
+安装 Rust 和 MSVC C++ 构建工具后，在项目目录执行：
+
+```powershell
+cargo run --release --locked
 ```
 
 也可直接运行编译产物：
@@ -159,6 +175,12 @@ cargo build --release --locked
 自动化测试使用模拟命令 / 后端覆盖解析和流程，不会共享、映射或断开本机 USB 设备。真实硬件验证需使用可安全转交给 WSL 的设备，在 Windows 上手动完成映射和断开操作。
 
 CI 在 Windows 和 Linux 上执行格式、Clippy 和测试检查，并在 Windows 上生成 release 构建；另有最低 Rust 版本检查。`Cargo.lock` 随仓库提交，以固定依赖解析结果。Dependabot 检查 Cargo 和 GitHub Actions 依赖更新。
+
+## 发布流程
+
+发布前同步 `Cargo.toml`、`Cargo.lock` 的版本和 [CHANGELOG.md](CHANGELOG.md)。推送 `v*` 版本标签（例如 `v1.0.0`）会触发完整 CI；仅在 Windows、Linux 和最低 Rust 版本检查全部通过后，工作流才会打包 Windows x64 可执行文件、生成 `SHA256SUMS.txt` 并发布 GitHub Release。标签版本必须与 Cargo 包版本一致。
+
+v1.0.0 的自动化验证使用模拟后端和进程测试，无需 USB 硬件。本次发布未进行真实 USB 设备的共享、映射或断开验证。
 
 ## 官方参考
 

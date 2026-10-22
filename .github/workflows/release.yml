@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Release checks
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish Windows x64 release
+    needs: checks
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Windows release
+        run: cargo build --release --locked
+      - name: Package and verify release
+        shell: pwsh
+        run: ./.github/scripts/package-release.ps1 -Tag $env:GITHUB_REF_NAME
+      - name: Publish GitHub Release with assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $archive = "target/dist/wsl-usb-$env:GITHUB_REF_NAME-windows-x86_64.zip"
+          gh release create $env:GITHUB_REF_NAME $archive target/dist/SHA256SUMS.txt --verify-tag --title "wsl-usb $env:GITHUB_REF_NAME" --notes-file target/dist/release-notes.md --latest
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed' }
