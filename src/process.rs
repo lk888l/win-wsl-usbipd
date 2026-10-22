@@ -252,8 +252,17 @@ pub fn decode_output(bytes: &[u8]) -> Result<String> {
     let little_endian_bom = bytes.starts_with(&[0xff, 0xfe]);
     let big_endian_bom = bytes.starts_with(&[0xfe, 0xff]);
     let sample: Vec<_> = bytes.iter().skip(1).step_by(2).take(128).collect();
-    let looks_utf16 =
-        sample.len() >= 2 && sample.iter().filter(|&&byte| *byte == 0).count() * 3 > sample.len();
+    // A quiet WSL list can contain only non-Latin names. Such UTF-16LE output
+    // has few zero high bytes, but still uses UTF-16 line endings. Inspect
+    // aligned code units so ordinary UTF-8 newlines do not trigger this path.
+    let has_utf16_line_ending = bytes
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .any(|pair| matches!(pair, [b'\r' | b'\n', 0]));
+    let looks_utf16 = has_utf16_line_ending
+        || (sample.len() >= 2
+            && sample.iter().filter(|&&byte| *byte == 0).count() * 3 > sample.len());
     if little_endian_bom || big_endian_bom || looks_utf16 {
         let content = if little_endian_bom || big_endian_bom {
             &bytes[2..]
@@ -342,6 +351,23 @@ mod tests {
         let value = "  NAME          STATE        VERSION\r\n* 开发 Ubuntu    正在运行      2\r\n";
         let encoded: Vec<u8> = value.encode_utf16().flat_map(u16::to_le_bytes).collect();
         assert_eq!(decode_output(&encoded).unwrap(), value);
+    }
+
+    #[test]
+    fn decodes_bomless_utf16_quiet_lists_with_non_latin_names() {
+        for value in [
+            "开发环境\r\n",
+            "开发环境\n",
+            "开发环境\r\n测试环境\r\n",
+            "日本語環境\r\n",
+            "\r\n",
+        ] {
+            let encoded: Vec<u8> = value.encode_utf16().flat_map(u16::to_le_bytes).collect();
+            assert_eq!(decode_output(&encoded).unwrap(), value);
+            // Recent WSL emits UTF-8 for the same names. Preserve that output
+            // even when its total byte count happens to be even.
+            assert_eq!(decode_output(value.as_bytes()).unwrap(), value);
+        }
     }
 
     #[test]

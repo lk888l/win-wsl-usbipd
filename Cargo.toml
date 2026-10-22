@@ -1,11 +1,12 @@
 [package]
 name = "win-wsl-usbipd"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 rust-version = "1.88"
 description = "A keyboard-driven Windows terminal tool for attaching USB devices to WSL2"
 license = "MIT"
 readme = "README.md"
+repository = "https://github.com/lk888l/win-wsl-usbipd"
 keywords = ["usb", "wsl", "usbipd", "terminal", "windows"]
 categories = ["command-line-utilities"]
 
